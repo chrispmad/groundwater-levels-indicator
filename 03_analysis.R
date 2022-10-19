@@ -13,7 +13,7 @@
 # the License.
 
 ###############################################################################
-# This script uses on ground water level data which has been processed to have
+# This script uses ground water level data which has been processed to have
 # 1 observation per month using the 02_clean.R script
 ###############################################################################
 
@@ -45,8 +45,8 @@ welldata_attr <- monthlywells_ts %>%
 
 
 ## Only use wells with relatively current data, more than 10 years of data, and 
-## less than 25% missing monthly observations
-latest_date <- "2009-01-01"
+## less than 25% missing monthly observations. Use lubridate to subtract 10 years from current date.
+latest_date <- Sys.Date() %m+% -years(10)
 
 wells_nums <- filter(welldata_attr, 
                      dataYears >= 10, 
@@ -68,7 +68,7 @@ results_annual <- gwl_zyp_test(dataframe = annualwells_ts, byID = "Well_Num",
 
 ## Join the analysis results to the well summary data
 ## Full join to add in missing and old data so we can mark it as such below
-wells_results <- full_join(results_annual, welldata_attr, by = "Well_Num")
+wells_results <- full_join(results_annual, welldata_attr, by = "Well_Num") %>% as_tibble()
 
 ## Assign each well to a trend category according to the slope and significance 
 ## of the trend
@@ -79,21 +79,27 @@ wells_results <- mutate(wells_results,
                                           TRUE ~ "Stable"))
 
 ## Join this to the well attribute data
-results_out <- right_join(obs_wells, wells_results, 
-                          by = c("OBSERVATION_WELL_NUMBER" = "Well_Num")) %>%
-  mutate(Lat = round(LATITUDE, 4), 
-         Long = round(LONGITUDE, 4), 
-         wellDepth_m = round(DEPTH_WELL_DRILLED * 0.3048), 
-         waterDepth_m = round(WATER_DEPTH * 0.3048), 
+results_out <- obs_wells %>% 
+  mutate(observation_well_number = as.numeric(observation_well_number)) %>% 
+  right_join(wells_results, 
+             by = c("observation_well_number" = "Well_Num")) %>%
+  # Reproject the coordinates of the wells into lat/long, add them to dataframe
+  st_transform(crs = 4326) %>% 
+  mutate(Long = st_coordinates(.)[,1],
+         Lat = st_coordinates(.)[,2]) %>%
+  mutate(Lat = round(Lat, 4), 
+         Long = round(Long, 4), 
+         wellDepth_m = round(finished_well_depth * 0.3048), 
+         waterDepth_m = round(static_water_level * 0.3048), 
          dataYears = round(dataYears, 1),
          trend_line_int = round(intercept, 4), 
          trend_line_slope = round(trend, 4),
          sig = round(sig, 4), 
          percent_missing = round(percent_missing, 1)) %>%
-  select(EMS_ID = CHEMISTRY_SITE_ID, 
-         Well_Num = OBSERVATION_WELL_NUMBER, 
-         Aquifer_Type = AQUIFER_TYPE,
-         REGION_NAME, 
+  select(EMS_ID = id, 
+         Well_Num = observation_well_number, 
+         Aquifer_Type = aquifer_type,
+         region_name, 
          aquifer_id,
          Lat, Long, 
          wellDepth_m, waterDepth_m, 
