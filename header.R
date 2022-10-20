@@ -10,13 +10,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-
 ## Install the packages we will need from CRAN:
 package_list <- c("dplyr", "rgdal", "sp", "ggplot2", "stringr", #"lubridate", "zoo"
                   "grid", "scales", #ggmap", 
                   "devtools", "rvest", "RColorBrewer",
                   "purrr", "sf", "gridExtra", "bcmaps", "scales", "forcats",
-                  "rmapshaper", "janitor", "readr", "cowplot", "glue")
+                  "rmapshaper", "janitor", "readr", "cowplot", "glue","targets","future","future.callr","future.batchtools")
 package_new <- package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(package_new)) install.packages(package_new)
 
@@ -71,6 +70,5 @@ if (!exists("out/figs")) dir.create("out/figs", showWarnings = FALSE)
 if (!exists("leaflet_map/well_plots")) dir.create("leaflet_map/well_plots", showWarnings = FALSE)
 if (!exists("leaflet_map/regional_plots")) dir.create("leaflet_map/regional_plots", showWarnings = FALSE)
 
-## Invisible header object
+# Invisible header object
 .header_sourced <- TRUE
-

@@ -13,3 +13,6 @@ README.html
 /leaflet_map/*.html
 /data
 gwl.log
+_targets/
+/out
+/print_ver
