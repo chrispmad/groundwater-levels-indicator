@@ -46,12 +46,14 @@ welldata_attr <- monthlywells_ts %>%
 
 ## Only use wells with relatively current data, more than 10 years of data, and 
 ## less than 25% missing monthly observations. Use lubridate to subtract 10 years from current date.
-latest_date <- Sys.Date() %m+% -years(10)
+# latest_date <- Sys.Date() %m+% -years(10)
 
-wells_nums <- filter(welldata_attr, 
-                     dataYears >= 10, 
-                     percent_missing < 25, 
-                     dataEnd > latest_date) %>% 
+latest_date = 2009
+
+wells_nums <- welldata_attr %>% 
+  filter(dataYears >= 10) %>% 
+  filter(percent_missing < 25) %>% 
+  filter(dataEnd > latest_date) %>% 
   pull(Well_Num)
 
 ## Summarise as mean annual values and filter to subset of wells

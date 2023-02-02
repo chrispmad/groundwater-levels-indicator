@@ -43,8 +43,9 @@ list(
   tar_target(wells_data_raw, read_raw_wells_dat(raw_well_data_path)),
   #Calculate various summaries
   tar_target(monthlywells_ts, calculate_monthlywells_ts(wells_data_raw)),
+  tar_target(get_monthly_mk_results, generate_monthly_MannKendall_well_results(wells_data_raw, welldata_attr, obs_wells)),
   tar_target(welldata_attr, generate_welldata_attr_summary(monthlywells_ts)),
-  tar_target(results_out, generate_well_results(monthlywells_ts, welldata_attr, obs_wells)),
+  tar_target(results_out, generate_annual_well_results(monthlywells_ts, welldata_attr, obs_wells)),
   tar_target(monthly_out, calculate_monthly_results(monthlywells_ts, results_out)),
   #Generate data necessary to make output.
   tar_target(results_viz, set_results_viz(results_out,monthly_out)),

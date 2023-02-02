@@ -32,10 +32,7 @@
 # }
 
 get_obs_wells_data = function(){
-  ## Source package libraries and the bcdc_map() function
-  # if (!exists(".header_sourced")) source("header.R")
-  # source("R/func.R")
-  
+
   if(!dir.exists('data'))dir.create("data", showWarnings = FALSE)
   
   # Download data directly from BC Data Catalogue.
@@ -71,7 +68,6 @@ get_obs_wells_data = function(){
     dplyr::filter(!duplicated(observation_well_number))
   
   write_sf(obs_wells, 'data/obs_wells_data.gpkg')
-  #return(obs_wells)
 }
 
 get_raw_wells_data = function(){
@@ -96,9 +92,5 @@ get_raw_wells_data = function(){
     }) %>% 
     dplyr::bind_rows()
   
-  ## Save raw data objects in a temporary directory
-  # save(obs_wells, file = "./tmp/clean_attr_data.RData")
-  # save(wells_data_raw, file = "./tmp/raw_well_data.RData")
   write.csv(wells_data_raw, file = 'data/raw_well_data.csv',row.names=F)
-  #return(wells_data_raw)
 }

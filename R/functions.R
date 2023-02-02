@@ -80,6 +80,42 @@ read_raw_wells_dat = function(file) {
 # ===DATA CLEANING AND ANALYSIS FUNCTION(S)====
 # 
 
+generate_monthly_MannKendall_well_results = function(wells_data_raw, welldata_attr, obs_wells){
+  
+  ### TEST ###
+  # Trying to replicate Calvin's results for OW45 #
+  ### TEST ###
+  wells_data_raw %>% 
+    filter(myLocation == "OW045") %>% 
+    mutate(the_month = month(Time),
+           the_year = year(Time)) %>% 
+    group_by(myLocation, the_year, the_month) %>% 
+    summarise(flow = sum(Value,na.rm = T))
+    ggplot() + geom_histogram(aes(Value))
+  
+  monthly_mk_results = wells_data_raw %>% 
+    mutate(the_month = month(Time)) %>% 
+    group_by(myLocation, the_month) %>% 
+    #See how many records per month are in each group. Any groups with fewer than 3 records can't be used.
+    #This only drops a handful of rows, in the end.
+    mutate(number_records = n()) %>% 
+    filter(number_records >= 3) %>% 
+    summarise(mk_assessment = list(Kendall::MannKendall(Value)))
+  
+  monthly_mk_results = monthly_mk_results %>% 
+      mutate(mk_assessment = str_remove(as.character(mk_assessment), "list\\(")) %>% 
+    tidyr::separate(mk_assessment, c("mk_tau","mk_p_value"), sep = ", ") %>% 
+    mutate(myLocation = as.numeric(str_remove(myLocation, "OW"))) %>% 
+    rename(Well_Num = myLocation)
+  
+  #Join the monthly MannKendall trend test results to the wells.
+  wells_with_monthly_mk_results = welldata_attr %>% 
+    left_join(monthly_mk_results) %>% 
+    dplyr::select(-EMS_ID)
+  
+  return(wells_with_monthly_mk_results)
+}
+
 # function 'calculate_monthly_well_summaries' takes the wells_data_raw output 
 # from 'get_raw_wells_data' function and outputs clean, monthly well summaries.
 calculate_monthlywells_ts = function(data){
@@ -117,7 +153,8 @@ calculate_monthlywells_ts = function(data){
   # has data gaps that are sufficiently large to be a problem. The issue is that then the user must 
   # write (by hand!) the list of well identity numbers and then filter them out... we can do better!
   # The function below adds a column to each well's dataframe indicating whether or not such a data gap exists,
-  # which we can easily use in the following code to filter out such problematic wells.
+  # which we can easily use in the following code to filter out such problematic wells. 
+  # Written by Chris Madsen 2022-10-19.
   wells_ts = wells_ts$data %>% 
     map( ~ {
       .x %>% cbind(.x %>% slice_head(prop = 0.1) %>% 
@@ -155,7 +192,7 @@ generate_welldata_attr_summary = function(data = monthlywells_ts){
   return(welldata_attr)
 }
   
-generate_well_results = function(monthlywells_ts, welldata_attr, obs_wells){
+generate_annual_well_results = function(monthlywells_ts, welldata_attr, obs_wells){
   ## Source package libraries
   # if (!exists(".header_sourced")) source("header.R")
   
@@ -192,7 +229,8 @@ generate_well_results = function(monthlywells_ts, welldata_attr, obs_wells){
   
   ## Join the analysis results to the well summary data
   ## Full join to add in missing and old data so we can mark it as such below
-  wells_results <- full_join(results_annual, welldata_attr, by = "Well_Num") %>% as_tibble()
+  wells_results <- welldata_attr %>% 
+    full_join(results_annual, by = "Well_Num")
   
   ## Assign each well to a trend category according to the slope and significance 
   ## of the trend
@@ -291,6 +329,13 @@ results_viz <- results_out[results_out$category != "N/A",] %>%
 ##save results_viz df to tmp folder for use in gwl.Rmd
 #save(results_viz, file = "tmp/results_viz.RData")
 return(results_viz)
+}
+
+generate_monthly_mk_figures = function(df = wells_with_monthly_mk_results){
+  #We want to show the trend in meters/year, as Calvin Beebe did.
+  #Only keep months with mk_p_value that are significant.
+  df %>% 
+    dplyr::select(Well_Num,the_month,mk_tau,mk_p_value)
 }
 
 # Note: below function still does not work to update print PDF map(s) if you

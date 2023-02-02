@@ -37,15 +37,17 @@ source("func.R")
 
 if(!dir.exists('data'))dir.create("data", showWarnings = FALSE)
 
-# Above download link broken. Attempting to get data directly from BC Data Catalogue.
+# Original download link broken. Attempting to get data directly from BC Data Catalogue.
 obs_wells = bcdata::bcdc_query_geodata('groundwater-wells') %>% 
+  filter(!is.na(WELL_TAG_NUMBER),
+         !is.na(WELL_STATUS)) %>% 
   collect() %>% 
   setNames(snakecase::to_snake_case(colnames(.)))
 
 obs_wells = obs_wells %>% 
-  #Filter out observations with no observation well status or number (the vast majority!)
-  filter(!is.na(observation_well_status)) %>% 
-  filter(!is.na(observation_well_number)) %>% 
+  ##Filter out observations with no observation well status or number (the vast majority!)
+  # filter(!is.na(observation_well_status)) %>% 
+  # filter(!is.na(observation_well_number)) %>% 
   #Join the natural resource region names etc. to data
   st_join(nr_regions() %>% dplyr::select(-id)) %>% 
   #Make column names 'R-friendly'
